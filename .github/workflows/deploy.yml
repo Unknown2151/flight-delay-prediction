@@ -1,13 +1,40 @@
-name: Deploy to Render
+name: CI/CD Pipeline
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
 
 jobs:
-  deploy:
+  test-and-deploy:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Trigger Render Deploy
-        run: curl "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
+    - uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.13'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install requests uvicorn  # Ensure these are available for testing
+
+    - name: Run Background Server and Test
+      run: |
+        # Start uvicorn in the background (&)
+        uvicorn main:app --host 127.0.0.1 --port 8000 &
+        # Run our test script
+        python test_api.py
+      env:
+        # We use dummy keys for testing so the app doesn't crash on startup
+        AMADEUS_API_KEY: "dummy"
+        AMADEUS_API_SECRET: "dummy"
+        TOMORROW_API_KEY: "dummy"
+
+    - name: Deploy to Render
+      if: success() # Only deploy if the tests above passed!
+      run: |
+        curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
