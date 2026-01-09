@@ -11,9 +11,9 @@ class FlightApiUser(HttpUser):
     @task(3) # This task is 3x more likely to run than the others
     def test_prediction(self):
         # We send a dummy request to see how the server handles logic
-        payload = {
+        headers = {'Content-Type': 'application/json'}
+        self.client.post("/predict", json={
             "carrierCode": "AA",
-            "flightNumber": "234",
-            "scheduledDepartureDate": "2025-10-23"
-        }
-        self.client.post("/predict", json=payload)
+            "flightNumber": "123",
+            "scheduledDepartureDate": "2026-12-25"
+        }, headers=headers)

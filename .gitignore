@@ -1,14 +1,13 @@
-# Python
-__pycache__/
-*.pyc
-
-# Virtual Environment
+# Environments
+.venv/
 venv/
+env/
 
-# Secrets
-.env
+# Python cache
+__pycache__/
+*.py[cod]
 
-# IDE / OS files
-.idea/
-.vscode/
-*.DS_Store
+# Testing & Logs
+.pytest_cache/
+*.log
+locust/
