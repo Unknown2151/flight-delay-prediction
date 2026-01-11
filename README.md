@@ -17,14 +17,14 @@ You can test the live API via the interactive documentation here:
 **[https://flight-un-known.onrender.com/docs](https://flight-un-known.onrender.com/docs)**
 
 ---
-## ## Project Overview
+## Project Overview
 
 The goal of this project was to build a complete machine learning application from scratch. This involved sourcing and cleaning data, training a classification model, and deploying it as a public-facing API. The model predicts whether a given flight is likely to be delayed by 15 minutes or more.
 
 Key challenges included handling large datasets, implementing a **Redis caching layer** for performance, and setting up **GitHub Actions** to ensure code reliability through automated testing.
 
 ---
-## ## Tech Stack
+## Tech Stack
 
 * **Backend:** Python, FastAPI
 * **Caching:** Redis
@@ -35,7 +35,7 @@ Key challenges included handling large datasets, implementing a **Redis caching 
 * **Deployment:** Render, Git, GitHub
 
 ---
-## ## Model Performance
+## Model Performance
 
 The final LightGBM model was trained and evaluated with a focus on correctly identifying delayed flights (optimizing for **Recall**).
 
@@ -46,14 +46,14 @@ The final LightGBM model was trained and evaluated with a focus on correctly ide
 | **Recall (for Delayed Flights)** | **~63%** |
 
 ---
-## ## Caching & Optimization
+## Caching & Optimization
 
 To handle high traffic and reduce redundant model computations, this API implements **Redis Caching**. 
 * **Performance:** Frequent flight lookups are served directly from the cache, significantly reducing response latency.
 * **Reliability:** Ensures the application remains responsive during peak usage.
 
 ---
-## ## Automated Testing & CI
+## Automated Testing & CI
 
 This project follows professional DevOps practices:
 * **Pytest Suite:** Includes 5 core tests covering API health, info metadata, and strict date validation logic.
@@ -61,7 +61,7 @@ This project follows professional DevOps practices:
 * **Load Testing:** Performance benchmarks are conducted using **Locust** to ensure the API can handle concurrent users.
 
 ---
-## ## How to Run Locally
+## How to Run Locally
 
 To run this project on your local machine, you'll need Git and Docker installed.
 
@@ -76,21 +76,21 @@ To run this project on your local machine, you'll need Git and Docker installed.
     REDIS_URL=redis://localhost:6379
     ```
 
-3**Build the Docker image:**
+3 **Build the Docker image:**
     ```bash
     docker build -t flight-predictor-api .
     ```
 
-4**Run the Docker container:**
+4 **Run the Docker container:**
     ```bash
     docker run -p 8000:8000 flight-predictor-api
     ```
 
-5**Access the application:**
+5 **Access the application:**
     Open your web browser and go to `http://localhost:8000`.
 
 ---
-## ## API Usage
+## API Usage
 
 The primary endpoint is `/predict`. You can send a `POST` request with form data to get a prediction.
 
