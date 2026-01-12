@@ -20,6 +20,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
+        pip install scikit-learn==1.6.1
         pip install requests uvicorn  # Ensure these are available for testing
 
     - name: Run Background Server and Test
