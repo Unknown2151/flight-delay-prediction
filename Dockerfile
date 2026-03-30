@@ -1,20 +1,76 @@
-# Use an official Python runtime as a parent image
+# Multi-stage build for production-grade Flight Delay Predictor API
+# Stage 1: Build stage for dependency installation
+FROM python:3.11-slim as builder
+
+LABEL maintainer="Flight Delay Prediction Team"
+LABEL description="Flight Delay Predictor API - Production Docker Image"
+
+# Install system dependencies with minimal bloat
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgomp1 \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+WORKDIR /tmp
+
+# Copy requirements and install Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir --user -r requirements.txt
+
+# Verify critical packages are installed
+RUN python -c "import redis, fastapi, gunicorn, pandas, lightgbm; print('✅ Critical dependencies verified')"
+
+
+# Stage 2: Runtime stage - minimal image
 FROM python:3.11-slim
 
-RUN apt-get update && apt-get install -y libgomp1
+LABEL maintainer="Flight Delay Prediction Team"
+LABEL version="2.0.0"
+LABEL description="Flight Delay Predictor API with Redis caching and circuit breaker patterns"
+
+# Install only runtime dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgomp1 \
+    curl \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# Create non-root user for security (principle of least privilege)
+RUN useradd -m -u 1000 -s /sbin/nologin appuser
 
 WORKDIR /app
 
-# Copy the requirements file and install dependencies
-COPY requirements.txt .
-#
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy Python packages from builder
+COPY --from=builder /root/.local /home/appuser/.local
 
-# Copy application code
-COPY ./main.py /app/
-COPY ./artifacts /app/artifacts/
+# Copy application files
+COPY main.py /app/
+COPY gunicorn_conf.py /app/
+COPY artifacts /app/artifacts/
 
-# Optimized command for Render/Railway using Gunicorn
-# -w 4: Spawns 4 worker processes
-# -k uvicorn.workers.UvicornWorker: High-performance async workers
-CMD ["gunicorn", "-w", "4", "-k", "uvicorn.workers.UvicornWorker", "main:app", "--bind", "0.0.0.0:8000"]
+# Set proper file permissions
+RUN chown -R appuser:appuser /app
+RUN chmod -R 755 /app
+
+# Switch to non-root user
+USER appuser
+
+# Add Python local packages to PATH
+ENV PATH=/home/appuser/.local/bin:$PATH \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PORT=8000
+
+EXPOSE 8000
+
+# Health check - ensures container is running properly
+HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Production-grade command using gunicorn with Uvicorn workers
+CMD ["gunicorn", \
+     "-c", "gunicorn_conf.py", \
+     "--access-logfile", "-", \
+     "--error-logfile", "-", \
+     "--log-level", "info", \
+     "main:app"]
+

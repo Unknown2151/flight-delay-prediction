@@ -1,0 +1,52 @@
+# Render.com Infrastructure as Code Configuration
+# This file defines the deployment infrastructure for the Flight Delay Predictor API
+# Reference: https://render.com/docs/deploy-gunicorn
+
+services:
+  - type: web
+    name: flight-delay-predictor-api
+    runtime: python
+    runtimeVersion: 3.11.4
+    
+    # Source code
+    repo: https://github.com/Unknown2151/flight-delay-prediction
+    branch: main
+    
+    # Build configuration
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn -c gunicorn_conf.py main:app
+    
+    # Health check
+    healthCheckPath: /health
+    healthCheckStartupFailureThresholdSeconds: 30
+    
+    # Auto-scaling (optional - enable for production)
+    numInstances: 1
+    
+    # Environment variables
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: LOG_LEVEL
+        value: INFO
+      - key: PORT
+        value: 8000
+      - key: AMADEUS_API_KEY
+        sync: false  # Set in Render dashboard
+      - key: AMADEUS_API_SECRET
+        sync: false  # Set in Render dashboard
+      - key: TOMORROW_API_KEY
+        sync: false  # Set in Render dashboard
+      - key: REDIS_URL
+        fromDatabase: flight-delay-redis
+    
+    # Disk size for persistent storage
+    disk:
+      name: model-artifacts
+      mountPath: /app/artifacts
+      sizeGB: 5
+
+databases:
+  - name: flight-delay-redis
+    plan: pro  # Free tier available, pro recommended for production
+    ipWhitelist: []  # Allow from anywhere (all IPs)

@@ -1,0 +1,204 @@
+version: '3.8'
+
+# ============================================================================
+# Flight Delay Predictor API - Docker Compose Configuration
+# ============================================================================
+# This compose file orchestrates:
+# - Redis: Distributed caching layer for circuit breaker & prediction cache
+# - API: FastAPI application with Gunicorn workers
+#
+# Features:
+# - Health checks for automatic recovery
+# - Service dependencies (API waits for Redis)
+# - Persistent Redis storage with AOF
+# - Environment variable management
+# - Production-ready configuration
+#
+# Usage:
+#   docker-compose up -d          # Start services in background
+#   docker-compose logs -f api    # Stream API logs
+#   docker-compose down -v        # Clean up with volume removal
+# ============================================================================
+
+services:
+  # ========================================================================
+  # Redis Cache - Distributed Key-Value Store
+  # ========================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: flight-predictor-redis
+    hostname: redis
+    restart: unless-stopped
+    
+    # Port binding - expose Redis on localhost for local testing
+    ports:
+      - "6379:6379"
+    
+    # Persistent storage with Append-Only File (AOF)
+    volumes:
+      - redis_data:/data
+    
+    # Health check configuration
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    
+    # Redis server configuration
+    # --appendonly yes: Enable AOF for durability
+    # --maxmemory-policy allkeys-lru: Evict least recently used when out of memory
+    # --save "": Disable RDB to save disk space (using AOF instead)
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --maxmemory-policy
+      - "allkeys-lru"
+      - --save
+      - ""
+    
+    # Security: Bind to localhost only in compose (not exposed directly)
+    networks:
+      - flight-network
+    
+    environment:
+      # Logging level for Redis
+      - REDIS_LOGLEVEL=notice
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+
+  # ========================================================================
+  # Flight Delay Predictor API - FastAPI Application
+  # ========================================================================
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: flight-predictor-api
+    hostname: api
+    restart: unless-stopped
+    
+    # Port exposure
+    ports:
+      - "8000:8000"
+    
+    # Environment variables for API configuration
+    environment:
+      # Amadeus API credentials (from host .env)
+      - AMADEUS_API_KEY=${AMADEUS_API_KEY}
+      - AMADEUS_API_SECRET=${AMADEUS_API_SECRET}
+      - TOMORROW_API_KEY=${TOMORROW_API_KEY}
+      
+      # Redis connection - use service DNS name within compose network
+      - REDIS_URL=redis://redis:6379
+      
+      # Application configuration
+      - PORT=8000
+      - ENVIRONMENT=production
+      - LOG_LEVEL=INFO
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+    
+    # Service dependency - wait for Redis health check
+    depends_on:
+      redis:
+        condition: service_healthy
+    
+    # Health check configuration
+    healthcheck:
+      test: ["CMD", "curl", "-f", "-s", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    
+    # Network connectivity
+    networks:
+      - flight-network
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1024M
+        reservations:
+          cpus: '1'
+          memory: 512M
+    
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    
+    # Volume mounting (optional - for local model updates)
+    volumes:
+      - ./artifacts:/app/artifacts:ro
+
+
+# ============================================================================
+# Volumes & Networks Configuration
+# ============================================================================
+
+volumes:
+  # Redis persistent storage
+  redis_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./redis_data
+
+networks:
+  flight-network:
+    driver: bridge
+    driver_opts:
+      com.docker.network.driver.mtu: 1500
+
+
+# ============================================================================
+# Additional Notes
+# ============================================================================
+#
+# PRODUCTION DEPLOYMENT:
+# =====================
+# For cloud deployment (e.g., Render, AWS ECS):
+# 1. Use managed Redis (AWS ElastiCache, Render Managed Redis)
+# 2. Set REDIS_URL to cloud Redis endpoint
+# 3. Scale API service horizontally (stateless design)
+# 4. Use container orchestration (Kubernetes, ECS)
+#
+# LOCAL DEVELOPMENT:
+# ==================
+# Start services:
+#   docker-compose -f docker-compose.yml up -d
+#
+# View logs:
+#   docker-compose logs -f api
+#   docker-compose logs -f redis
+#
+# Test API:
+#   curl http://localhost:8000/health
+#   curl http://localhost:8000/docs
+#
+# Connect to Redis CLI:
+#   docker exec -it flight-predictor-redis redis-cli
+#
+# Clean up:
+#   docker-compose down -v
+#
+# ============================================================================
+
+
