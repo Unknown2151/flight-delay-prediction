@@ -25,6 +25,10 @@ import os
 from enum import Enum
 from typing import Optional
 from functools import lru_cache
+from dotenv import load_dotenv
+
+# Load .env BEFORE class-level os.getenv() calls are evaluated
+load_dotenv()
 
 
 class Environment(str, Enum):
@@ -51,30 +55,49 @@ class Settings:
     AMADEUS_API_SECRET: str = os.getenv("AMADEUS_API_SECRET", "")
     TOMORROW_API_KEY: str = os.getenv("TOMORROW_API_KEY", "")
     
+    # External API Endpoint URLs
+    AMADEUS_TOKEN_URL: str = os.getenv(
+        "AMADEUS_TOKEN_URL",
+        "https://test.api.amadeus.com/v1/security/oauth2/token"
+    )
+    AMADEUS_FLIGHTS_URL: str = os.getenv(
+        "AMADEUS_FLIGHTS_URL",
+        "https://test.api.amadeus.com/v2/schedule/flights"
+    )
+    WEATHER_API_URL: str = os.getenv(
+        "WEATHER_API_URL",
+        "https://api.tomorrow.io/v4/weather/realtime"
+    )
+    
     # Redis Configuration
     REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379")
-    REDIS_SOCKET_CONNECT_TIMEOUT: int = 5
+    REDIS_SOCKET_CONNECT_TIMEOUT: int = int(os.getenv("REDIS_SOCKET_CONNECT_TIMEOUT", 5))
     REDIS_SOCKET_KEEPALIVE: bool = True
-    REDIS_HEALTH_CHECK_INTERVAL: int = 30
+    REDIS_HEALTH_CHECK_INTERVAL: int = int(os.getenv("REDIS_HEALTH_CHECK_INTERVAL", 30))
     
     # Cache Settings
-    CACHE_TTL_SECONDS: int = 1800  # 30 minutes
+    CACHE_TTL_SECONDS: int = int(os.getenv("CACHE_TTL_SECONDS", 1800))  # 30 minutes
     
     # Model Configuration
-    MODEL_PATH: str = "artifacts/flight_delay_pipeline.pkl"
-    AIRPORT_DATA_URL: str = "https://raw.githubusercontent.com/jpatokal/openflights/master/data/airports.dat"
+    MODEL_PATH: str = os.getenv("MODEL_PATH", "artifacts/flight_delay_pipeline.pkl")
+    AIRPORT_DATA_URL: str = os.getenv(
+        "AIRPORT_DATA_URL",
+        "https://raw.githubusercontent.com/jpatokal/openflights/master/data/airports.dat"
+    )
     
     # API Client Configuration
-    HTTP_TIMEOUT_AMADEUS: int = 8
-    HTTP_TIMEOUT_WEATHER: int = 5
-    HTTP_POOL_CONNECTIONS: int = 20
-    HTTP_POOL_MAXSIZE: int = 20
-    HTTP_RETRIES_TOTAL: int = 2
-    HTTP_RETRIES_BACKOFF_FACTOR: float = 0.5
+    HTTP_TIMEOUT_AMADEUS: int = int(os.getenv("HTTP_TIMEOUT_AMADEUS", 8))
+    HTTP_TIMEOUT_WEATHER: int = int(os.getenv("HTTP_TIMEOUT_WEATHER", 5))
+    HTTP_TIMEOUT_DEFAULT: int = int(os.getenv("HTTP_TIMEOUT_DEFAULT", 10))
+    HTTP_POOL_CONNECTIONS: int = int(os.getenv("HTTP_POOL_CONNECTIONS", 20))
+    HTTP_POOL_MAXSIZE: int = int(os.getenv("HTTP_POOL_MAXSIZE", 20))
+    HTTP_RETRIES_TOTAL: int = int(os.getenv("HTTP_RETRIES_TOTAL", 2))
+    HTTP_RETRIES_BACKOFF_FACTOR: float = float(os.getenv("HTTP_RETRIES_BACKOFF_FACTOR", 0.5))
+    HTTP_RETRIES_STATUS_FORCELIST: list = [429, 500, 502, 503, 504]
     
     # Circuit Breaker Configuration
-    CIRCUIT_BREAKER_FAILURE_THRESHOLD: int = 5
-    CIRCUIT_BREAKER_RECOVERY_TIMEOUT: int = 60
+    CIRCUIT_BREAKER_FAILURE_THRESHOLD: int = int(os.getenv("CIRCUIT_BREAKER_FAILURE_THRESHOLD", 5))
+    CIRCUIT_BREAKER_RECOVERY_TIMEOUT: int = int(os.getenv("CIRCUIT_BREAKER_RECOVERY_TIMEOUT", 60))
     
     # Default Values for Fallback
     DEFAULT_WEATHER: dict = {
@@ -82,24 +105,30 @@ class Settings:
         'windSpeed': 5.0,
         'precipitationIntensity': 0.0
     }
-    DEFAULT_DISTANCE_KM: float = 1000.0
-    DEFAULT_ORIGIN_AIRPORT: str = "JFK"
-    DEFAULT_DESTINATION_AIRPORT: str = "LAX"
-    DEFAULT_HOUR: int = 8
+    DEFAULT_DISTANCE_KM: float = float(os.getenv("DEFAULT_DISTANCE_KM", 1000.0))
+    DEFAULT_ORIGIN_AIRPORT: str = os.getenv("DEFAULT_ORIGIN_AIRPORT", "JFK")
+    DEFAULT_DESTINATION_AIRPORT: str = os.getenv("DEFAULT_DESTINATION_AIRPORT", "LAX")
+    DEFAULT_HOUR: int = int(os.getenv("DEFAULT_HOUR", 8))
     
     # CORS Configuration
-    CORS_ORIGINS: list = ["*"]
-    CORS_ALLOW_CREDENTIALS: bool = True
-    CORS_ALLOW_METHODS: list = ["*"]
-    CORS_ALLOW_HEADERS: list = ["*"]
+    CORS_ORIGINS: list = os.getenv("CORS_ORIGINS", "*").split(",")
+    CORS_ALLOW_CREDENTIALS: bool = os.getenv("CORS_ALLOW_CREDENTIALS", "true").lower() == "true"
+    CORS_ALLOW_METHODS: list = os.getenv("CORS_ALLOW_METHODS", "*").split(",")
+    CORS_ALLOW_HEADERS: list = os.getenv("CORS_ALLOW_HEADERS", "*").split(",")
     
     # API Metadata
-    API_TITLE: str = "Flight Delay Predictor API"
-    API_VERSION: str = "2.0.0"
-    API_DESCRIPTION: str = (
+    API_TITLE: str = os.getenv("API_TITLE", "Flight Delay Predictor API")
+    API_VERSION: str = os.getenv("API_VERSION", "2.0.0")
+    API_DESCRIPTION: str = os.getenv(
+        "API_DESCRIPTION",
         "Enterprise-grade ML API for predicting US airline flight delays "
         "with Redis caching and circuit breaker patterns"
     )
+    
+    # Locust / Load Testing Configuration
+    LOCUST_TARGET_SUCCESS_RATE: float = float(os.getenv("TARGET_SUCCESS_RATE", 80))
+    LOCUST_TEST_FLIGHTS_PATH: str = os.getenv("LOCUST_TEST_FLIGHTS_PATH", "test_flights.json")
+    SLOW_REQUEST_THRESHOLD_MS: int = int(os.getenv("SLOW_REQUEST_THRESHOLD_MS", 10000))
     
     # Gunicorn Workers Configuration
     # Formula: (2 × CPU cores) + 1

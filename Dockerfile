@@ -43,6 +43,7 @@ COPY --from=builder /root/.local /home/appuser/.local
 
 # Copy application files
 COPY main.py /app/
+COPY config.py /app/
 COPY gunicorn_conf.py /app/
 COPY artifacts /app/artifacts/
 

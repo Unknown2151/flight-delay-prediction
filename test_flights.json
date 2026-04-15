@@ -1,0 +1,21 @@
+{
+  "_comment": "Flight test data for Locust load testing. Add/remove flights to match your Amadeus test environment.",
+  "flights": [
+    {"carrierCode": "IB", "flightNumber": "532"},
+    {"carrierCode": "IB", "flightNumber": "534"},
+    {"carrierCode": "IB", "flightNumber": "536"},
+    {"carrierCode": "IB", "flightNumber": "1020"},
+    {"carrierCode": "BA", "flightNumber": "490"},
+    {"carrierCode": "BA", "flightNumber": "480"},
+    {"carrierCode": "BA", "flightNumber": "476"},
+    {"carrierCode": "LH", "flightNumber": "400"},
+    {"carrierCode": "LH", "flightNumber": "1800"},
+    {"carrierCode": "LH", "flightNumber": "1806"},
+    {"carrierCode": "AA", "flightNumber": "1"},
+    {"carrierCode": "AA", "flightNumber": "100"},
+    {"carrierCode": "DL", "flightNumber": "1"},
+    {"carrierCode": "UA", "flightNumber": "1"},
+    {"carrierCode": "AF", "flightNumber": "1"},
+    {"carrierCode": "AZ", "flightNumber": "610"}
+  ]
+}

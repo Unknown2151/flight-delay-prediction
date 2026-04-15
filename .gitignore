@@ -90,6 +90,7 @@ pip-delete-this-directory.txt
 *.xls
 *.json
 !requirements.txt
+!test_flights.json
 *.pkl
 *.pickle
 *.joblib
