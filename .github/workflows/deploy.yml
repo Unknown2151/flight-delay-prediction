@@ -41,8 +41,9 @@ jobs:
         run: black --check main.py locustfile.py
 
       - name: Run unit tests with coverage
+        # FIX HERE: Prefixed PYTHONPATH=. so pytest handles directory resolution
         run: |
-          pytest tests/ -v --cov=. --cov-report=xml --cov-report=html
+          PYTHONPATH=. pytest tests/ -v --cov=. --cov-report=xml --cov-report=html
         env:
           AMADEUS_API_KEY: "test-key"
           AMADEUS_API_SECRET: "test-secret"
@@ -52,7 +53,7 @@ jobs:
   integration-tests:
     name: Integration Tests
     runs-on: ubuntu-latest
-    
+
     services:
       redis:
         image: redis:7-alpine
@@ -80,8 +81,9 @@ jobs:
           pip install -r requirements.txt
 
       - name: Start API server
+        # FIX HERE: Added PYTHONPATH=. so uvicorn can find main:app
         run: |
-          uvicorn main:app --host 127.0.0.1 --port 8000 &
+          PYTHONPATH=. uvicorn main:app --host 127.0.0.1 --port 8000 &
           sleep 5
         env:
           AMADEUS_API_KEY: "test-key"
@@ -90,7 +92,8 @@ jobs:
           REDIS_URL: "redis://localhost:6379"
 
       - name: Run integration tests
-        run: python test_api.py
+        # FIX HERE: Running the test runner with pythonpath context
+        run: PYTHONPATH=. python test_api.py
         env:
           REDIS_URL: "redis://localhost:6379"
 
